@@ -17,3 +17,7 @@
     - [ ] Mail credentials env variables
     - [ ] Email controller
     - [ ] Auto tests
+
+- [ ] Swagger API documentation
+- [ ] Readme fill
+- [ ] Submit the project
