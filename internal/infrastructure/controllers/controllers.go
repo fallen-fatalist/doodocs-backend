@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"regexp"
 	"zip-api/internal/infrastructure/config"
+	"zip-api/internal/services"
 )
 
 // Filename regexp for Linux filesystem rules
@@ -58,9 +60,20 @@ func ArchiveInfo(w http.ResponseWriter, r *http.Request) {
 			jsonErrorRespond(w, "Incorrect Content-Type, it must be application/zip", http.StatusBadRequest)
 			return
 		}
-		
 
-
+		archiveMetadata, err := services.ZipServiceInstance.ZipInfo(archivePart)
+		if err != nil {
+			slog.Error(fmt.Sprintf("Error while unzipping the archive: %s", err))
+			jsonErrorRespond(w, "Error while unzipping the archive", http.StatusInternalServerError)
+			return
+		}
+		jsonPayload, err := json.MarshalIndent(archiveMetadata, "", "   ")
+		if err != nil {
+			slog.Error(fmt.Sprintf("Error while marshalling JSON of archive struct: %s", err))
+			jsonErrorRespond(w, "Error while returning the archive", http.StatusInternalServerError)
+			return
+		}
+		w.Write(jsonPayload)
 		return
 	}
 }
