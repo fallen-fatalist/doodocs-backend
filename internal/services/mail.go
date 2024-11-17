@@ -1,5 +1,7 @@
 package services
 
+import "io"
+
 type MailService interface {
-	SendFile(file []byte, emails []string) error
+	SendFile(file io.Reader, emails []string) error
 }
