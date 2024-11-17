@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"zip-api/internal/infrastructure/config"
 	"zip-api/internal/services"
+	"zip-api/internal/services/zipservice"
 )
 
 // Filename regexp for Linux filesystem rules
@@ -57,15 +58,21 @@ func ArchiveInfo(w http.ResponseWriter, r *http.Request) {
 		sniff, _ := buf.Peek(512)
 		contentType := http.DetectContentType(sniff)
 		if contentType != "application/zip" {
-			jsonErrorRespond(w, "Incorrect Content-Type, it must be application/zip", http.StatusBadRequest)
+			jsonErrorRespond(w, "Incorrect filetype zip file must be provided", http.StatusBadRequest)
 			return
 		}
 
-		archiveMetadata, err := services.ZipServiceInstance.ZipInfo(archivePart)
+		archiveMetadata, err := services.ZipServiceInstance.ZipInfo(archivePart, archivePart.FileName())
 		if err != nil {
-			slog.Error(fmt.Sprintf("Error while unzipping the archive: %s", err))
-			jsonErrorRespond(w, "Error while unzipping the archive", http.StatusInternalServerError)
-			return
+			switch err {
+			case zipservice.ErrIncorrectMimeType:
+				jsonErrorRespond(w, "Archive contains not allowed mime type", http.StatusBadRequest)
+				return
+			default:
+				slog.Error(fmt.Sprintf("Error while unzipping the archive: %s", err))
+				jsonErrorRespond(w, "Error while unzipping the archive", http.StatusInternalServerError)
+				return
+			}
 		}
 		jsonPayload, err := json.MarshalIndent(archiveMetadata, "", "   ")
 		if err != nil {

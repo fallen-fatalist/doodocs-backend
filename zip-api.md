@@ -5,7 +5,7 @@
 
 - [ ] Archive information
     - [x] Archive information controller
-    - [ ] Archive information service
+    - [x] Archive information service
     - [ ] Auto tests
     
 - [ ] Archive formation 

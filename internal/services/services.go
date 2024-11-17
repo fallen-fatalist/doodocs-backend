@@ -2,11 +2,11 @@ package services
 
 import (
 	"zip-api/internal/services/mail"
-	"zip-api/internal/services/zip"
+	"zip-api/internal/services/zipservice"
 )
 
 // Global variables
 var (
 	MailServiceInstance MailService = mail.NewMailService()
-	ZipServiceInstance  ZipService  = zip.NewZipService()
+	ZipServiceInstance  ZipService  = zipservice.NewZipService()
 )
