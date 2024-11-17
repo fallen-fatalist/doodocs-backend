@@ -3,14 +3,19 @@ package cmd
 import (
 	"log"
 	"net/http"
+	"os"
 	"zip-api/internal/infrastructure/config"
 )
 
 func Run() {
-	config.Init()
+	err := config.Init()
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 
 	mux := routes()
 
-	err := http.ListenAndServe(":"+config.Port, mux)
+	err = http.ListenAndServe(":"+config.Port, mux)
 	log.Fatal(err)
 }

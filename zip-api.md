@@ -1,15 +1,16 @@
 ## TODO list
 
 - [x] Router
-    
-- [ ] Archive formation 
-    - [ ] Archive files service 
-    - [ ] Archive files controller
-    - [ ] Auto tests
+- [ ] Multipart/form Request effective and safe reading
 
 - [ ] Archive information
     - [ ] Archive information service
     - [ ] Archive information controller
+    - [ ] Auto tests
+    
+- [ ] Archive formation 
+    - [ ] Archive files service 
+    - [ ] Archive files controller
     - [ ] Auto tests
 
 - [ ] Email 

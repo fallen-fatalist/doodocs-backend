@@ -7,11 +7,11 @@ import (
 )
 
 type errorEnveloper struct {
-	message string `json: "error"`
+	Message string `json:"error"`
 }
 
-func jsonErrorRespond(w http.ResponseWriter, err error, statusCode int) {
-	errJSON := errorEnveloper{err.Error()}
+func jsonErrorRespond(w http.ResponseWriter, message string, statusCode int) {
+	errJSON := errorEnveloper{message}
 	if statusCode == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {

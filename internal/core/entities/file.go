@@ -1,7 +1,7 @@
 package entities
 
-type File struct {
-	filePath string `json:"file_path"`
-	size     uint32 `json: "size"`
-	mimeType string `json: "mimetype"`
+type file struct {
+	FilePath string `json:"file_path"`
+	Size     uint32 `json: "size"`
+	MimeType string `json: "mimetype"`
 }
