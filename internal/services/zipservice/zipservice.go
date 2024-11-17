@@ -3,6 +3,7 @@ package zipservice
 import (
 	"archive/zip"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -31,39 +32,46 @@ func NewZipService() *zipService {
 }
 
 func (s *zipService) ZipInfo(zipArchiveBinaryReader io.Reader, zipName string) (*entities.Archive, error) {
-	archiveFile, err := os.CreateTemp("temp_zip", "*.zip")
+	zipFile, err := os.CreateTemp("", "*.zip")
 	if err != nil {
 		return nil, err
 	}
-	defer archiveFile.Close()
-	zipSize, err := io.Copy(archiveFile, zipArchiveBinaryReader)
+	defer zipFile.Close()
+
+	_, err = io.Copy(zipFile, zipArchiveBinaryReader)
+	if err != nil {
+		return nil, err
+	}
+
+	stat, err := zipFile.Stat()
 	if err != nil {
 		return nil, err
 	}
 
 	// Read the ZIP archive from the io.Reader
-	zipReader, err := zip.NewReader(archiveFile, zipSize)
+	fmt.Println(stat.Size())
+	zipReader, err := zip.NewReader(zipFile, stat.Size())
 	if err != nil {
 		return nil, err
 	}
 
-	sniff := make([]byte, 512)
-
 	// Prepare the Archive struct
 	archive := &entities.Archive{
 		FileName:   zipName,
-		Size:       uint32(zipSize),             // size of the ZIP file in bytes
+		Size:       uint32(stat.Size()),         // size of the ZIP file in bytes
 		TotalSize:  0,                           // Total uncompressed size of files in the archive
 		TotalFiles: uint32(len(zipReader.File)), // Total number of files
 	}
 
+	sniff := make([]byte, 512)
 	// Iterate through each file in the ZIP archive
-	for _, zf := range zipReader.File {
-		fileReader, err := zf.Open()
+	for _, file := range zipReader.File {
+		fileReader, err := file.Open()
 		if err != nil {
 			return nil, err
 		}
 		defer fileReader.Close()
+
 		fileReader.Read(sniff)
 
 		contentType := http.DetectContentType(sniff)
@@ -72,12 +80,12 @@ func (s *zipService) ZipInfo(zipArchiveBinaryReader io.Reader, zipName string) (
 		}
 
 		// Update the total uncompressed size
-		archive.TotalSize += uint32(zf.UncompressedSize64)
+		archive.TotalSize += uint32(file.UncompressedSize64)
 
 		// Extract file metadata
 		file := entities.File{
-			FilePath: zf.Name,
-			Size:     uint32(zf.UncompressedSize64),
+			FilePath: file.Name,
+			Size:     uint32(file.UncompressedSize64),
 			MimeType: contentType,
 		}
 

@@ -21,5 +21,5 @@ func jsonErrorRespond(w http.ResponseWriter, message string, statusCode int) {
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	w.Write(jsonError)
+	w.Write(append(jsonError, '\n'))
 }

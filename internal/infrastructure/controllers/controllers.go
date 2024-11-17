@@ -30,7 +30,7 @@ func ArchiveInfo(w http.ResponseWriter, r *http.Request) {
 		// reader for streaming read
 		reader, err := r.MultipartReader()
 		if err != nil {
-			message, code := "", http.StatusBadRequest
+			message, code := "Cannot read multipart form data, incorrect format of Request", http.StatusBadRequest
 			switch err {
 			case multipart.ErrMessageTooLarge:
 				message = fmt.Sprintf("Request body too large it must not exceed: %d bytes", config.BodyLimitInBytes)
@@ -64,13 +64,15 @@ func ArchiveInfo(w http.ResponseWriter, r *http.Request) {
 
 		archiveMetadata, err := services.ZipServiceInstance.ZipInfo(archivePart, archivePart.FileName())
 		if err != nil {
+			statusCode, _ := http.StatusBadRequest, ""
 			switch err {
+
 			case zipservice.ErrIncorrectMimeType:
-				jsonErrorRespond(w, "Archive contains not allowed mime type", http.StatusBadRequest)
+				jsonErrorRespond(w, "Archive contains not allowed mime type", statusCode)
 				return
 			default:
-				slog.Error(fmt.Sprintf("Error while unzipping the archive: %s", err))
-				jsonErrorRespond(w, "Error while unzipping the archive", http.StatusInternalServerError)
+				slog.Error(fmt.Sprintf("Error while reading the zip archive: %s", err))
+				jsonErrorRespond(w, "Error while unzipping the archive, incorrect zip format", statusCode)
 				return
 			}
 		}

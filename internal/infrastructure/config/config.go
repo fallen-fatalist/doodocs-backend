@@ -33,7 +33,7 @@ func Init() error {
 
 	// Mail handling
 	mailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	Mail = os.Getenv("MAIL")
+	Mail = os.Getenv("EMAIL")
 	if Mail != "" && !mailRegex.Match([]byte(Mail)) {
 		return fmt.Errorf("mail does not match the standard format")
 	}
