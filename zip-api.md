@@ -4,8 +4,8 @@
 - [ ] Multipart/form Request effective and safe reading
 
 - [ ] Archive information
+    - [x] Archive information controller
     - [ ] Archive information service
-    - [ ] Archive information controller
     - [ ] Auto tests
     
 - [ ] Archive formation 
