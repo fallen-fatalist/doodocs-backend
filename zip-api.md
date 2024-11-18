@@ -1,9 +1,9 @@
 ## TODO list
 
 - [x] Router
-- [ ] Multipart/form Request effective and safe reading
+- [x] Multipart/form Request effective and safe reading
 
-- [ ] Archive information
+- [x] Archive information
     - [x] Archive information controller
     - [x] Archive information service
     - [x] Added docx signature and XML mimetype changing

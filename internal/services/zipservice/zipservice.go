@@ -7,23 +7,12 @@ import (
 	"net/http"
 	"os"
 	"zip-api/internal/core/entities"
+	"zip-api/internal/utils"
 )
 
 // Errors
 var (
 	ErrIncorrectMimeType = errors.New("not allowed mimetype provided in archive file")
-)
-
-var (
-	AllowedMimeTypes = []string{
-		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-		"application/xml",
-		"text/xml",
-		"image/jpeg",
-		"image/png",
-	}
-
-	docxSequence = []byte{80, 75, 3, 4}
 )
 
 type zipService struct {
@@ -33,19 +22,32 @@ func NewZipService() *zipService {
 	return &zipService{}
 }
 
-func (s *zipService) ZipInfo(zipArchiveBinaryReader io.Reader, zipName string) (*entities.Archive, error) {
+func (s *zipService) ZipInfo(archiveReader io.Reader, zipName string) (*entities.Archive, error) {
 	zipFile, err := os.CreateTemp("", "*.zip")
-	if err != nil {
-		return nil, err
-	}
-
-	zipSize, err := io.Copy(zipFile, zipArchiveBinaryReader)
 	if err != nil {
 		return nil, err
 	}
 	defer zipFile.Close()
 
-	// Read the ZIP archive from the io.Reader
+	buf := make([]byte, 2048)
+	var zipSize int64
+	// Stream reading of the archive into the new file
+	for {
+		n, err := archiveReader.Read(buf)
+		if err != nil && err != io.EOF {
+			return nil, err
+		} else if n == 0 {
+			break
+		}
+		// Write the data to the destination file
+		_, err = zipFile.Write(buf[:n])
+		if err != nil {
+			return nil, err
+		}
+		zipSize += int64(n)
+	}
+
+	// Read the ZIP archive from the temporary file
 	zipReader, err := zip.NewReader(zipFile, zipSize)
 	if err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func (s *zipService) ZipInfo(zipArchiveBinaryReader io.Reader, zipName string) (
 		if mimeType == "text/xml; charset=utf-8" {
 			mimeType = "application/xml"
 		} else if mimeType == "application/zip" {
-			if complySingature(sniff, docxSequence) {
+			if utils.ComplySingature(sniff, utils.DocxSequence) {
 				mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 			}
 		}
@@ -101,26 +103,6 @@ func (s *zipService) ZipInfo(zipArchiveBinaryReader io.Reader, zipName string) (
 
 }
 
-func (s *zipService) ZipArchive(files []io.Reader) ([]byte, error) {
-	return []byte{}, nil
-}
-
-func In(s string, strs []string) bool {
-	for _, str := range strs {
-		if str == s {
-			return true
-		}
-	}
-	return false
-}
-
-func complySingature(sniff []byte, signature []byte) bool {
-	for idx, _ := range signature {
-		if idx >= len(sniff) {
-			return false
-		} else if sniff[idx] != signature[idx] {
-			return false
-		}
-	}
-	return true
+func (s *zipService) ZipArchive(files []io.Reader) (io.Reader, error) {
+	return nil, nil
 }
