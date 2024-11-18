@@ -5,7 +5,8 @@
 
 - [ ] Archive information
     - [x] Archive information controller
-    - [ ] Archive information service
+    - [x] Archive information service
+    - [x] Added docx signature and XML mimetype changing
     - [ ] Auto tests
     
 - [ ] Archive formation 
