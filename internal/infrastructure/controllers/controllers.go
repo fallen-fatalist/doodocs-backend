@@ -62,7 +62,7 @@ func ArchiveInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		archiveMetadata, err := services.ZipServiceInstance.ZipInfo(archivePart, archivePart.FileName())
+		archiveMetadata, err := services.ZipServiceInstance.ZipInfo(buf, archivePart.FileName())
 		if err != nil {
 			statusCode, _ := http.StatusBadRequest, ""
 			switch err {

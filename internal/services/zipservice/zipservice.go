@@ -3,7 +3,6 @@ package zipservice
 import (
 	"archive/zip"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -32,25 +31,24 @@ func NewZipService() *zipService {
 }
 
 func (s *zipService) ZipInfo(zipArchiveBinaryReader io.Reader, zipName string) (*entities.Archive, error) {
-	zipFile, err := os.CreateTemp("", "*.zip")
+	zipFile, err := os.Create("data/dummy-dummy.zip")
+	if err != nil {
+		return nil, err
+	}
+
+	zipSize, err := io.Copy(zipFile, zipArchiveBinaryReader)
+	zipFile.Sync()
 	if err != nil {
 		return nil, err
 	}
 	defer zipFile.Close()
-
-	_, err = io.Copy(zipFile, zipArchiveBinaryReader)
-	if err != nil {
-		return nil, err
-	}
-
 	stat, err := zipFile.Stat()
 	if err != nil {
 		return nil, err
 	}
 
 	// Read the ZIP archive from the io.Reader
-	fmt.Println(stat.Size())
-	zipReader, err := zip.NewReader(zipFile, stat.Size())
+	zipReader, err := zip.NewReader(zipFile, zipSize)
 	if err != nil {
 		return nil, err
 	}
