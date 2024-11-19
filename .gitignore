@@ -1,6 +1,7 @@
 # vscode metadata
 .vscode
 # scripts for testing
-scripts
+#scripts
 zipdir
+data
 
