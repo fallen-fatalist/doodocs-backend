@@ -11,6 +11,7 @@
 - [ ] Archive formation 
     - [x] Archive files service 
     - [x] Archive files controller
+    - [ ] Divide service and controller
     - [ ] Auto tests
 
 - [ ] Move validation from controllers to services
