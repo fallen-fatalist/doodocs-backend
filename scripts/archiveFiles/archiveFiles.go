@@ -118,9 +118,14 @@ func sendFiles(dirPath string, url string) error {
 
 func main() {
 	// Path to the directory containing files to upload
-	dirPath := "./zipdir/data"                       // Example directory
-	url := "http://localhost:8080/api/archive/files" // URL of the server API
-
+	dirPath := "./zipdir/data" // Example directory
+	url := "http://localhost:8080/api/archive/information"
+	if len(os.Args) >= 2 {
+		dirPath = os.Args[1]
+	}
+	if len(os.Args) >= 3 {
+		url = os.Args[2]
+	}
 	// Send files from the directory as a multipart/form-data request
 	err := sendFiles(dirPath, url)
 	if err != nil {

@@ -13,13 +13,18 @@ import (
 
 func main() {
 	zipPath := "data/dummy.zip"
-	if len(os.Args) == 2 {
+	url := "http://localhost:8080/api/archive/information"
+	if len(os.Args) >= 2 {
 		zipPath = os.Args[1]
 	}
-	getInfoZip(zipPath)
+	if len(os.Args) >= 3 {
+		url = os.Args[2]
+	}
+
+	getInfoZip(zipPath, url)
 }
 
-func getInfoZip(fileName string) {
+func getInfoZip(fileName, url string) {
 	zipFile, err := os.Open(fileName)
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +47,7 @@ func getInfoZip(fileName string) {
 	writer.Close()
 	fmt.Fprintf(os.Stdout, "Copied %v bytes for uploading...\n", size)
 
-	response, err := http.Post("http://localhost:8080/api/archive/information", writer.FormDataContentType(), &buffer)
+	response, err := http.Post(url, writer.FormDataContentType(), &buffer)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error making POST request to get zip info: %v\n", err)
