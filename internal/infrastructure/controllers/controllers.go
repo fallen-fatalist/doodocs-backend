@@ -99,6 +99,7 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Sets boundary for request body
 		r.Body = http.MaxBytesReader(w, r.Body, config.BodyLimitInBytes)
+		defer r.Body.Close()
 
 		// Reader for validation
 		reader, err := r.MultipartReader()
@@ -109,7 +110,6 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 
 		// Assuming the zipWriter is initialized to write to the response body
 		zipWriter := zip.NewWriter(w)
-		defer zipWriter.Close()
 
 		// Initialize the buffer for reading file parts
 		buf := make([]byte, 1024) // Buffer to read file parts in chunks
@@ -132,7 +132,7 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 			// Create a new file entry in the ZIP archive
 			fileHeader := &zip.FileHeader{
 				Name:   filepath.Base(filePart.FileName()),
-				Method: zip.Deflate, // Optional compression method (Deflate is commonly used)
+				Method: zip.Store, // Optional compression method (Deflate is commonly used)
 			}
 
 			// Create an entry in the ZIP archive for the current file part
@@ -149,7 +149,7 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 				if err != nil && err != io.EOF {
 					jsonErrorRespond(w, err.Error(), http.StatusInternalServerError)
 					return
-				} else if n == 0 && err == io.EOF {
+				} else if n == 0 {
 					slog.Info(fmt.Sprintf("total %d bytes written into temporary archive with file: %s", total, filePart.FileName()))
 					break
 				}
@@ -161,10 +161,12 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
+
 		}
+		zipWriter.Close()
+
 		// Content-Type header for ZIP file
 		w.Header().Set("Content-Type", "application/zip")
-
 	}
 
 }
