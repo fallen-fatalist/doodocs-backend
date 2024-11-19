@@ -21,8 +21,8 @@ func In(s string, strs []string) bool {
 	return false
 }
 
-func ComplySingature(sniff []byte, signature []byte) bool {
-	for idx, _ := range signature {
+func ComplySignature(sniff []byte, signature []byte) bool {
+	for idx := range signature {
 		if idx >= len(sniff) {
 			return false
 		} else if sniff[idx] != signature[idx] {

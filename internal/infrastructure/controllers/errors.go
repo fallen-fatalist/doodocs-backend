@@ -11,6 +11,7 @@ type errorEnveloper struct {
 }
 
 func jsonErrorRespond(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
 	errJSON := errorEnveloper{message}
 	if statusCode == 0 {
 		w.WriteHeader(http.StatusBadRequest)

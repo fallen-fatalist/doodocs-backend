@@ -3,9 +3,13 @@ package zipservice
 import (
 	"archive/zip"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"zip-api/internal/core/entities"
 	"zip-api/internal/utils"
 )
@@ -29,7 +33,7 @@ func (s *zipService) ZipInfo(archiveReader io.Reader, zipName string) (*entities
 	}
 	defer zipFile.Close()
 
-	buf := make([]byte, 2048)
+	buf := make([]byte, 4096)
 	var zipSize int64
 	// Stream reading of the archive into the new file
 	for {
@@ -83,13 +87,13 @@ func (s *zipService) ZipInfo(archiveReader io.Reader, zipName string) (*entities
 		if mimeType == "text/xml; charset=utf-8" {
 			mimeType = "application/xml"
 		} else if mimeType == "application/zip" {
-			if utils.ComplySingature(sniff, utils.DocxSequence) {
+			if utils.ComplySignature(sniff, utils.DocxSequence) {
 				mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 			}
 		}
 
 		// Extract file metadata
-		file := entities.File{
+		file := entities.FileMetadata{
 			FilePath: file.Name,
 			Size:     uint32(file.UncompressedSize64),
 			MimeType: mimeType,
@@ -103,6 +107,55 @@ func (s *zipService) ZipInfo(archiveReader io.Reader, zipName string) (*entities
 
 }
 
-func (s *zipService) ZipArchive(files []io.Reader) (io.Reader, error) {
+func (s *zipService) ZipArchive(fileParts []*multipart.Part) (*os.File, error) {
 	return nil, nil
+	// Create a temporary file to store the ZIP archive
+	tmpArchive, err := os.CreateTemp("", "*.zip")
+	if err != nil {
+		return nil, fmt.Errorf("unable to create temporary file: %v", err)
+	}
+
+	// Create a zip.Writer that writes to the temporary ZIP file
+	zipWriter := zip.NewWriter(tmpArchive)
+
+	// Buffer for stream reading
+	buf := make([]byte, 4096)
+
+	for _, filePart := range fileParts {
+		fileHeader := &zip.FileHeader{
+			Name:   filepath.Base(filePart.FileName()),
+			Method: zip.Deflate,
+		}
+		// Create a new entry in the ZIP file using the file header
+		fileWriter, err := zipWriter.CreateHeader(fileHeader)
+		if err != nil {
+			return nil, fmt.Errorf("error creating zip header for file %s: %v", filePart.FileName(), err)
+		}
+		total := 0
+
+		for {
+			n, err := filePart.Read(buf)
+			total += n
+			if err != nil && err != io.EOF {
+				return nil, err
+			} else if n == 0 && err == io.EOF {
+				slog.Info(fmt.Sprintf("total %d bytes written into temporary archive with file: %s", total, filePart.FileName()))
+				break
+			}
+			// Write the data to the destination file
+			_, err = fileWriter.Write(buf[:n])
+			if err != nil {
+				return nil, err
+			}
+		}
+
+	}
+	zipWriter.Close()
+	_, err = tmpArchive.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, fmt.Errorf("error seeking to the start of the temporary file: %v", err)
+	}
+
+	// Return the temporary file as an io.Reader to allow streaming it out
+	return tmpArchive, nil
 }
