@@ -9,13 +9,11 @@ import (
 	"log/slog"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"zip-api/internal/infrastructure/config"
 	"zip-api/internal/services"
 	"zip-api/internal/services/zipservice"
-	"zip-api/internal/utils"
 )
 
 // Filename regexp for Linux filesystem rules
@@ -108,67 +106,43 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 			jsonErrorRespond(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tmpArchive, err := os.CreateTemp("", "*.zip")
-		if err != nil {
-			jsonErrorRespond(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
-		// Create a zip.Writer that writes to the temporary ZIP file
-		zipWriter := zip.NewWriter(tmpArchive)
+		// Assuming the zipWriter is initialized to write to the response body
+		zipWriter := zip.NewWriter(w)
+		defer zipWriter.Close()
 
-		// Buffer for stream reading
-		buf := make([]byte, 4096)
+		// Initialize the buffer for reading file parts
+		buf := make([]byte, 1024) // Buffer to read file parts in chunks
 
-		// File parts validation and reading
+		// Process each file part
 		for filePart, err := reader.NextPart(); err != io.EOF; filePart, err = reader.NextPart() {
+			defer filePart.Close()
+
 			if err != nil {
 				slog.Error(fmt.Sprintf("Error while reading the Request body part: %s", err.Error()))
 				jsonErrorRespond(w, "Error while reading the request body", http.StatusInternalServerError)
 				return
-			} else if filePart.FormName() != "files[]" {
+			}
+			// Ensure this matches your filename rule and MIME type checks
+			if filePart.FormName() != "files[]" {
 				jsonErrorRespond(w, "Missing files[] form name", http.StatusBadRequest)
 				return
-			} else if !filenameRegexp.Match([]byte(filePart.FileName())) {
-				jsonErrorRespond(w, fmt.Sprintf("File name: %s does not comply the linux filename rules", filePart.FileName()), http.StatusBadRequest)
-				return
 			}
 
-			fileReader := bufio.NewReader(filePart)
-			sniff, err := fileReader.Peek(512)
-			if err != nil {
-				slog.Error(fmt.Sprintf("error while Sniffing the file: %s", err.Error()))
-				jsonErrorRespond(w, "Error while reading the file", http.StatusInternalServerError)
-				return
-			}
-
-			contentType := http.DetectContentType(sniff)
-			if contentType == "text/xml; charset=utf-8" {
-				contentType = "application/xml"
-			} else if contentType == "application/zip" {
-				if utils.ComplySignature(sniff, utils.DocxSequence) {
-					contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-				}
-			}
-			if !utils.In(contentType, utils.AllowedMimeTypes) {
-				slog.Error(fmt.Sprintf("entered %s file with not allowed mimetype: %s", filePart.FileName(), contentType))
-				jsonErrorRespond(w, fmt.Sprintf("entered %s file with not allowed mimetype: %s", filePart.FileName(), contentType), http.StatusBadRequest)
-				return
-			}
-
-			// Archive writing
+			// Create a new file entry in the ZIP archive
 			fileHeader := &zip.FileHeader{
 				Name:   filepath.Base(filePart.FileName()),
-				Method: zip.Deflate,
+				Method: zip.Deflate, // Optional compression method (Deflate is commonly used)
 			}
-			// Create a new entry in the ZIP file using the file header
+
+			// Create an entry in the ZIP archive for the current file part
 			fileWriter, err := zipWriter.CreateHeader(fileHeader)
 			if err != nil {
 				jsonErrorRespond(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			total := 0
 
+			total := 0
 			for {
 				n, err := filePart.Read(buf)
 				total += n
@@ -179,7 +153,8 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 					slog.Info(fmt.Sprintf("total %d bytes written into temporary archive with file: %s", total, filePart.FileName()))
 					break
 				}
-				// Write the data to the destination file
+
+				// Write the data chunk to the ZIP archive
 				_, err = fileWriter.Write(buf[:n])
 				if err != nil {
 					jsonErrorRespond(w, err.Error(), http.StatusInternalServerError)
@@ -187,41 +162,9 @@ func ArchiveFiles(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-
-		zipWriter.Close()
-		_, err = tmpArchive.Seek(0, io.SeekStart)
-
-		if err != nil {
-			slog.Error(fmt.Sprintf("Error while archiving the files: %s", err))
-			jsonErrorRespond(w, "Error while archiving the files", http.StatusInternalServerError)
-			return
-		}
-		defer tmpArchive.Close()
-
-		buf = make([]byte, 4096)
+		// Content-Type header for ZIP file
 		w.Header().Set("Content-Type", "application/zip")
 
-		total := 0
-		for {
-			n, err := tmpArchive.Read(buf)
-			if err != nil && err != io.EOF {
-				slog.Error(fmt.Sprintf("Error while reading the archive reader: %s", err))
-				jsonErrorRespond(w, "Error while archiving the files", http.StatusInternalServerError)
-				return
-			} else if n == 0 {
-				slog.Info(fmt.Sprintf("Archived %d bytes", total))
-				break
-			}
-			// Write the data to the destination file
-			_, err = w.Write(buf[:n])
-			total += n
-			if err != nil {
-				slog.Error(fmt.Sprintf("Error while reading the archive reader: %s", err))
-				jsonErrorRespond(w, "Error while archiving the files", http.StatusInternalServerError)
-				return
-			}
-		}
-		return
 	}
 
 }
