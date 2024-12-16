@@ -1,16 +1,16 @@
 ### Zip api
 
-This is a web application for processing zip archives:
+This is a web application for processing zip archives
+
+the main features:
 1. To get info about zip archive
 2. To archive the files into zip archive
-
-It additional has a feature for sending file to some emails.
+3. Send files to specified emails
 
 ### API
-
 1. Get info about archive: 
-
-```POST /api/archive/information HTTP/1.1
+```
+POST /api/archive/information HTTP/1.1
 Content-Type: multipart/form-data; boundary=-{some-random-boundary}
 
 -{some-random-boundary}
@@ -18,7 +18,8 @@ Content-Disposition: form-data; name="file"; filename="my_archive.zip"
 Content-Type: application/zip
 
 {Binary data of ZIP file}
--{some-random-boundary}--```
+-{some-random-boundary}--
+```
 
 2. Archive files into zip archive
 
